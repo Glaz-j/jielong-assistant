@@ -1,0 +1,16 @@
+{
+  "repository": "https://github.com/fanyuantaier/wechatauto-replica",
+  "commit": "bc2e6f2461330eb1a53996d2f2afc18416376b52",
+  "upstreamSha256": "432ba902fd2c3656d7ad2c0daf6aa4254f0e7924f686e84213dc484466571add",
+  "changes": [
+    "Only db.py retained; GUI modules excluded",
+    "Private non-printing logger",
+    "Refuse plaintext fallback when DPAPI fails",
+    "Authenticated committed WAL snapshot replaces upstream snapshot and stale fallback",
+    "Close partial connections on shard-open failure",
+    "Refuse partial message-shard reads",
+    "Content-verified two-pass source snapshots; no timestamp-only cache or post-copy invalidation"
+  ],
+  "status": "Static audit only; not verified on target Windows",
+  "walSource": "../wechat-decrypt/scripts/common/wal_snapshot.py (MIT; LICENSE-wal-snapshot included)"
+}
