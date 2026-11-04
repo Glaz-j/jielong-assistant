@@ -1,0 +1,1 @@
+document.getElementById('demo-form').addEventListener('submit',e=>{e.preventDefault();const result=document.getElementById('demo-result');result.textContent='模拟报名成功！未向接龙管家提交数据。';result.className='success';result.dataset.demoSuccess='true';e.target.hidden=true;});
