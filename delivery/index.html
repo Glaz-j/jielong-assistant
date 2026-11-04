@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="application-name" content="JielongAssistant"><title>接龙助手</title>
+<style>
+*{box-sizing:border-box}body{font:15px system-ui;background:#f4f7f8;color:#172d34;margin:0}main{max-width:760px;margin:32px auto;padding:30px;background:white;border-radius:16px}h1{margin:0 0 12px}h2{font-size:19px;margin:28px 0 12px}label{display:block;margin:12px 0}input[type=text],select{display:block;width:100%;padding:11px;border:1px solid #b9c9ce;border-radius:8px;margin-top:6px;background:white;color:inherit}input[type=checkbox]{margin-right:7px}button{background:#176e72;color:white;border:0;padding:11px 16px;border-radius:8px;margin:6px 6px 6px 0;cursor:pointer;font:inherit}button.secondary{background:#e8f0f1;color:#254c52}button:disabled{opacity:.45;cursor:wait}aside{background:#fff4d9;padding:12px 14px;border-radius:8px;font-size:14px}p{line-height:1.6}.hint,small{color:#52656b;line-height:1.6}.fields{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}.status{background:#edf5f4;padding:14px;border-radius:8px;margin-top:14px}#status{white-space:pre-wrap}#state{font-weight:600}#account{overflow-wrap:anywhere}ul{padding-left:22px}li{margin:8px 0;overflow-wrap:anywhere}details{border-top:1px solid #dce6e8;margin-top:24px;padding-top:18px}summary{cursor:pointer}footer{margin-top:24px;border-top:1px solid #dce6e8;padding-top:16px;display:flex;align-items:center;justify-content:space-between}@media(max-width:560px){main{margin:0;padding:20px;border-radius:0}.fields{grid-template-columns:1fr}footer{display:block}}
+</style>
+<main><h1>接龙助手</h1><aside>选择一个微信群，自动使用以下四项资料填写接龙管家新表单。启动后可以关闭页面，后台继续工作。</aside>
+<h2>1. 填写个人信息</h2><form id="profile"><div id="fields" class="fields"></div>
+<label><input type="checkbox" id="authorize">同意使用以上资料报名，并确认接龙管家《保存个人信息授权》</label>
+<button>保存个人信息</button><small>仅保存在这台电脑。修改资料会暂停监听。</small></form>
+<h2>2. 登录接龙管家</h2><p class="hint" id="loginState">尚未保存官网登录。</p>
+<button id="login">打开官网登录</button><button id="finish" class="secondary">完成登录</button><br><small>仅手动点击“打开官网登录”时显示窗口。后台填写不会弹窗。</small>
+<h2>3. 选择微信群</h2><p class="hint">请先在本机微信登录，再读取群列表。可以在微信切换聊天，监听按群编号识别。</p>
+<button id="discover" class="secondary">读取微信账号和群列表</button><p id="account" class="hint"></p>
+<label>目标群<select id="groups"><option value="">请先读取群列表</option></select></label><button id="select" class="secondary">保存目标群</button>
+<div><button id="start">启动后台监听</button><button id="stop" class="secondary">停止监听</button></div>
+<small>启动后仅处理所选群的新卡片，首次连接忽略历史消息。下次启动此应用会恢复监听；“停止监听”会取消恢复。</small>
+<div class="status"><div id="state">监听已停止</div><p id="status" role="status" aria-live="polite"></p></div>
+<h2>最近报名结果</h2><ul id="results"><li>暂无记录</li></ul>
+<details><summary>手动验证一个活动</summary><p class="hint">先停止自动监听，再粘贴活动链接测试。</p><label>接龙管家官方活动链接<input type="text" id="url" placeholder="https://i.jielong.com/f/…"></label><label><input type="checkbox" id="confirm">已核对活动和个人资料，确认提交一次</label><button id="submit">后台填写并提交</button></details>
+<footer><small>关闭页面后后台继续运行。</small><button id="quit" class="secondary">退出后台</button></footer></main>
+<script nonce="__TOKEN__">
+const keys=['姓名','单位','职工号','所属部门'],$=id=>document.getElementById(id);let busy=false,ended=false,lastGroups='';
+keys.forEach(k=>{const label=document.createElement('label');label.textContent=k;const input=document.createElement('input');input.type='text';input.required=true;input.maxLength=120;input.id=k;label.append(input);$('fields').append(label)});
+async function api(route,body={}){const r=await fetch('/api/'+route,{method:'POST',headers:{'Content-Type':'application/json','X-App-Token':'__TOKEN__'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw Error(d.error);return d}
+function render(s,initial=false){
+ if(initial){keys.forEach(k=>$(k).value=s.profile[k]||'');$('authorize').checked=s.authorized}
+ $('loginState').textContent=s.loginSaved?'已保存本人官网登录；失效时需重新登录。':'尚未保存官网登录。';
+ $('account').textContent=s.accountId?'微信账号：'+s.accountName+'（'+s.accountId+'）':'尚未读取微信账号。';
+ const signature=JSON.stringify([s.groups,s.selectedChatId]);if(signature!==lastGroups){lastGroups=signature;$('groups').replaceChildren();const blank=document.createElement('option');blank.value='';blank.textContent='请选择目标群';$('groups').append(blank);for(const g of s.groups){const o=document.createElement('option');o.value=g.id;o.textContent=g.name+'（'+g.id+'）';$('groups').append(o)}$('groups').value=s.selectedChatId;}
+ $('state').textContent=s.watching.message+(s.wechatReady?' · '+s.group:'');
+ $('results').replaceChildren();const names={submitted:'提交成功',failed:'停止处理',queued:'等待填写',running:'正在填写',interrupted:'上次任务中断'};
+ for(const j of s.results){const li=document.createElement('li');let timing='';if(j.status==='submitted'){timing=Number.isFinite(j.endToEndMs)?'，消息到提交 '+(j.endToEndMs/1000).toFixed(2)+' 秒'+(j.endToEndMs>10000?'（超过 10 秒）':''):'，后台处理 '+(j.durationMs/1000).toFixed(2)+' 秒（未测消息时延）'}li.textContent=(names[j.status]||j.status)+' · '+j.id+timing+(j.error?'：'+j.error:'');$('results').append(li)}
+ if(!s.results.length){const li=document.createElement('li');li.textContent='暂无记录';$('results').append(li)}
+}
+async function refresh(initial=false){render(await api('state'),initial)}
+async function run(fn){if(busy||ended)return;busy=true;const buttons=[...document.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);$('status').textContent='正在处理…';try{const d=await fn();$('status').textContent=d.message||'';if(!ended)await refresh()}catch(e){$('status').textContent=e.message}finally{busy=false;if(!ended)buttons.forEach(b=>b.disabled=false)}}
+$('profile').onsubmit=e=>{e.preventDefault();run(()=>api('profile',{profile:Object.fromEntries(keys.map(k=>[k,$(k).value])),authorized:$('authorize').checked}))};
+$('login').onclick=()=>run(()=>api('login'));$('finish').onclick=()=>run(()=>api('login-finish'));$('discover').onclick=()=>run(()=>api('wechat-discover'));$('select').onclick=()=>run(()=>api('wechat-select',{chatId:$('groups').value}));$('start').onclick=()=>run(()=>api('wechat-start'));$('stop').onclick=()=>run(()=>api('wechat-stop'));$('submit').onclick=()=>run(()=>api('submit',{url:$('url').value,confirm:$('confirm').checked}));$('quit').onclick=()=>run(async()=>{const d=await api('quit');ended=true;$('state').textContent='后台正在退出';return d});
+refresh(true).catch(e=>$('status').textContent=e.message);setInterval(()=>{if(!busy&&!ended)refresh().catch(()=>{$('state').textContent='后台未连接；请重新启动应用'})},2000);
+</script></html>
