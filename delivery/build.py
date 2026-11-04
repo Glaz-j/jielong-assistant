@@ -3,7 +3,7 @@ from pathlib import Path,PurePosixPath
 import zipfile,hashlib,json,shutil,tempfile
 root=Path(__file__).resolve().parent.parent
 out=root/'release';out.mkdir(exist_ok=True)
-version='1.0.0';name='JielongAssistant-'+version
+version='1.1.0';name='JielongAssistant-'+version
 stage=Path(tempfile.mkdtemp(prefix='jla-build-',dir=out))/name;stage.mkdir()
 r=root/'delivery-runtime'
 def copy(source,dest):
@@ -20,9 +20,11 @@ def unpack(archive,dest,skip=None):
 for file in ['silent-worker.mjs','browser.mjs','core.mjs','profile.mjs']:
  copy(root/file,stage/file)
 (stage/'package.json').write_text(json.dumps({'name':'jielong-assistant','version':version,'type':'module','private':True},indent=2))
-for file in ['app.mjs','wechat.mjs','index.html']:
+for file in ['app.mjs','wechat.mjs','index.html','startup.mjs','maintenance.mjs']:
  copy(root/'delivery'/file,stage/'delivery'/file)
 copy(root/'delivery/start.vbs',stage/'启动接龙助手.vbs')
+copy(root/'delivery/start.vbs',stage/'start.vbs')
+copy(root/'delivery/start-background.vbs',stage/'start-background.vbs')
 copy(root/'delivery/使用说明.txt',stage/'使用说明.txt')
 copy(root/'delivery/验收记录.md',stage/'验收记录.md')
 for dependency in ['playwright','playwright-core']:
@@ -58,9 +60,9 @@ manifest={str(p.relative_to(stage)):hashlib.sha256(p.read_bytes()).hexdigest() f
 final=out/name
 if final.exists():shutil.rmtree(final) # Exact generated version path only.
 stage.rename(final);stage.parent.rmdir()
-z=out/'接龙助手-Windows-1.0.0.zip'
+z=out/('接龙助手-Windows-'+version+'.zip')
 with zipfile.ZipFile(z,'w',zipfile.ZIP_DEFLATED) as archive:
  for p in final.rglob('*'):
   if p.is_file():archive.write(p,str(p.relative_to(out)))
-(out/'SHA256SUMS-1.0.0.txt').write_text(hashlib.sha256(z.read_bytes()).hexdigest()+'  '+z.name+'\n')
+(out/('SHA256SUMS-'+version+'.txt')).write_text(hashlib.sha256(z.read_bytes()).hexdigest()+'  '+z.name+'\n')
 print(json.dumps({'package':str(z),'size':z.stat().st_size,'files':len(manifest),'credentials':'excluded by allowlist','verification':'Windows native and real group cards verified; see acceptance record'},ensure_ascii=False))

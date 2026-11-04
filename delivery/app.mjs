@@ -8,16 +8,17 @@ import {chromium} from 'playwright';
 import {fixedProfile,PROFILE_FIELDS} from '../profile.mjs';
 import {SilentWorker} from '../silent-worker.mjs';
 import {WeChatBridge} from './wechat.mjs';
+import {startupSettings} from './startup.mjs';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 export async function startApp({
  dir=path.join(process.env.LOCALAPPDATA||path.join(os.homedir(),'.local','share'),'JielongAssistant'),port=47834,
- bridgeFactory=d=>new WeChatBridge(d),workerFactory=d=>new SilentWorker(d)
+ bridgeFactory=d=>new WeChatBridge(d),workerFactory=d=>new SilentWorker(d),startup=startupSettings(),retryMs=30000
 }={}){
  await fs.mkdir(dir,{recursive:true,mode:0o700});
  const token=randomBytes(32).toString('hex'),bridge=bridgeFactory(dir);
- let config=null,worker=null,login=null,discovery=null,tail=Promise.resolve(),pump=null,pumping=false,runtimeError='',closing=false,closePromise,app;
+ let config=null,worker=null,login=null,discovery=null,tail=Promise.resolve(),pump=null,pumping=false,runtimeError='',closing=false,closePromise,app,retryTimer;
  try{config=JSON.parse(await fs.readFile(path.join(dir,'config.json'),'utf8'));}catch(e){if(e.code!=='ENOENT')throw e;}
  try{const saved=JSON.parse(await fs.readFile(path.join(dir,'wechat-discovery.json'),'utf8'));if(saved.ok===true&&Array.isArray(saved.groups))discovery=saved;}catch{}
  const save=async()=>{await fs.writeFile(path.join(dir,'config.json.tmp'),JSON.stringify(config),{mode:0o600});await fs.rename(path.join(dir,'config.json.tmp'),path.join(dir,'config.json'));};
@@ -49,6 +50,7 @@ export async function startApp({
    pump=(async()=>{
     while(pumping){
      const state=await bridge.status();
+     if(state.state==='failed')throw Error(state.message);
      if(state.ready)await worker.tick();
      await sleep(100);
     }
@@ -63,7 +65,8 @@ export async function startApp({
    profile:config?.profile||{},group:config?.group||'',authorized:!!config?.acceptSavedPersonalInfo,loginSaved:await hasAuth(),
    accountId:discovery?.accountId||'',accountName:discovery?.accountName||'',groups:discovery?.groups||[],selectedChatId:config?.wechatChatId||'',
    wechatReady:pumping&&watching.ready,watching:{...watching,ready:pumping&&watching.ready,message:runtimeError||watching.message},
-   running:pumping,autoStart:!!config?.autoStart,
+   running:pumping,autoStart:!!config?.autoStart,onboardingComplete:!!config?.onboardingComplete,
+   startup:await startup.state(),version:'1.1.0',
    results:Object.values(jobs).sort((a,b)=>(b.receivedMs||0)-(a.receivedMs||0)).slice(0,10).map(j=>({id:j.id,status:j.status,completedAt:j.completedAt,endToEndMs:j.endToEndMs,durationMs:j.durationMs,error:j.error}))
   };
  }
@@ -85,6 +88,11 @@ export async function startApp({
     switch(req.url){
      case '/api/quit':setTimeout(()=>app.close().catch(()=>{}),100);return {message:'正在停止监听并等待正在提交的任务结束，可关闭此页面'};
      case '/api/state':return state();
+     case '/api/startup':return {startup:await startup.set(body.enabled),message:body.enabled?'已开启登录 Windows 后静默启动':'已关闭开机自启'};
+     case '/api/onboarding-finish':{
+      if(!pumping||!(await bridge.status()).ready)throw Error('请等待监听就绪后再完成设置');
+      config.onboardingComplete=true;await save();return {message:'设置完成，可以关闭此页面，后台继续监听'};
+     }
      case '/api/profile':{
       const profile=fixedProfile(body.profile);if(PROFILE_FIELDS.some(k=>!profile[k]))throw Error('请填写全部四项个人信息');
       await stopRuntime({disable:true});
@@ -133,9 +141,14 @@ export async function startApp({
  await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(port,'127.0.0.1',resolve)});
  app={url:`http://127.0.0.1:${server.address().port}`,close:()=>{
   if(closePromise)return closePromise;
-  closing=true;return closePromise=(async()=>{await tail;await stopRuntime();if(login)await login.close();await new Promise(r=>server.close(r));})();
+  closing=true;clearInterval(retryTimer);return closePromise=(async()=>{await tail;await stopRuntime();if(login)await login.close();await new Promise(r=>server.close(r));})();
  }};
  if(config?.autoStart){tail=startRuntime().catch(e=>{runtimeError=e.message;});}
+ // Windows can start us before WeChat is ready. Retry only the user's saved
+ // listening choice; never open a login page or synthesize desktop input.
+ retryTimer=setInterval(()=>{
+  tail=tail.then(async()=>{if(!closing&&config?.autoStart&&!pumping&&!login)await startRuntime();}).catch(e=>{runtimeError=e.message;});
+ },retryMs);retryTimer.unref();
  return app;
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)){

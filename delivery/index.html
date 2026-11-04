@@ -1,40 +1,61 @@
 <!doctype html>
 <html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="application-name" content="JielongAssistant"><title>接龙助手</title>
 <style>
-*{box-sizing:border-box}body{font:15px system-ui;background:#f4f7f8;color:#172d34;margin:0}main{max-width:760px;margin:32px auto;padding:30px;background:white;border-radius:16px}h1{margin:0 0 12px}h2{font-size:19px;margin:28px 0 12px}label{display:block;margin:12px 0}input[type=text],select{display:block;width:100%;padding:11px;border:1px solid #b9c9ce;border-radius:8px;margin-top:6px;background:white;color:inherit}input[type=checkbox]{margin-right:7px}button{background:#176e72;color:white;border:0;padding:11px 16px;border-radius:8px;margin:6px 6px 6px 0;cursor:pointer;font:inherit}button.secondary{background:#e8f0f1;color:#254c52}button:disabled{opacity:.45;cursor:wait}aside{background:#fff4d9;padding:12px 14px;border-radius:8px;font-size:14px}p{line-height:1.6}.hint,small{color:#52656b;line-height:1.6}.fields{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}.status{background:#edf5f4;padding:14px;border-radius:8px;margin-top:14px}#status{white-space:pre-wrap}#state{font-weight:600}#account{overflow-wrap:anywhere}ul{padding-left:22px}li{margin:8px 0;overflow-wrap:anywhere}details{border-top:1px solid #dce6e8;margin-top:24px;padding-top:18px}summary{cursor:pointer}footer{margin-top:24px;border-top:1px solid #dce6e8;padding-top:16px;display:flex;align-items:center;justify-content:space-between}@media(max-width:560px){main{margin:0;padding:20px;border-radius:0}.fields{grid-template-columns:1fr}footer{display:block}}
+*{box-sizing:border-box}[hidden]{display:none!important}body{font:15px system-ui;background:#f4f7f8;color:#172d34;margin:0}main{max-width:760px;margin:32px auto;padding:30px;background:white;border-radius:16px}h1{margin:0 0 10px}h2{font-size:21px;margin:24px 0 12px}label{display:block;margin:16px 0}input[type=text],select{display:block;width:100%;padding:12px;border:1px solid #b9c9ce;border-radius:8px;margin-top:6px;background:white;color:inherit;font:inherit}input[type=checkbox]{margin-right:8px}button{background:#176e72;color:white;border:0;padding:12px 18px;border-radius:8px;margin:6px 6px 6px 0;cursor:pointer;font:inherit}button.secondary{background:#e8f0f1;color:#254c52}button:disabled{opacity:.45;cursor:default}aside{background:#edf5f4;padding:12px 14px;border-radius:8px;font-size:14px}p{line-height:1.7}.hint,small{color:#52656b;line-height:1.6}.fields{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}.status{background:#f4f7f8;padding:12px 14px;border-radius:8px;margin:20px 0}#status{white-space:pre-wrap;margin:4px 0}#status:empty{display:none}#state{font-weight:600}#account{overflow-wrap:anywhere}ul{padding-left:22px}li{margin:8px 0;overflow-wrap:anywhere}details{border-top:1px solid #dce6e8;margin-top:24px;padding-top:18px}summary{cursor:pointer}footer{margin-top:24px;border-top:1px solid #dce6e8;padding-top:16px;display:flex;align-items:center;justify-content:space-between}nav{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:24px 0}nav span{border-bottom:3px solid #dde8e9;padding:10px 0;color:#52656b;font-size:14px}nav span[aria-current=step]{color:#176e72;border-color:#176e72;font-weight:700}.actions{margin-top:20px}#summary{white-space:pre-line;background:#edf5f4;padding:16px;border-radius:8px}@media(max-width:560px){main{margin:0;padding:20px;border-radius:0}.fields{grid-template-columns:1fr}footer{display:block}nav span{font-size:12px}}
 </style>
-<main><h1>接龙助手</h1><aside>选择一个微信群，自动使用以下四项资料填写接龙管家新表单。启动后可以关闭页面，后台继续工作。</aside>
-<h2>1. 填写个人信息</h2><form id="profile"><div id="fields" class="fields"></div>
+<main><h1>接龙助手</h1><p class="hint" id="intro">首次设置完成后，新接龙会自动填写，无需一直打开此页面。</p>
+<nav aria-label="首次设置进度" id="steps"><span>1 · 个人资料</span><span>2 · 本人登录</span><span>3 · 选择群</span><span>4 · 开始使用</span></nav>
+<div class="status"><div id="state">正在连接后台…</div><p id="status" role="status" aria-live="polite"></p></div>
+<section data-step="0"><h2>填写你的报名资料</h2><p class="hint">只填写这四项。资料保存在这台电脑，职工号中的前导零会保留。</p><form id="profile"><div id="fields" class="fields"></div>
 <label><input type="checkbox" id="authorize">同意使用以上资料报名，并确认接龙管家《保存个人信息授权》</label>
-<button>保存个人信息</button><small>仅保存在这台电脑。修改资料会暂停监听。</small></form>
-<h2>2. 登录接龙管家</h2><p class="hint" id="loginState">尚未保存官网登录。</p>
-<button id="login">打开官网登录</button><button id="finish" class="secondary">完成登录</button><br><small>仅手动点击“打开官网登录”时显示窗口。后台填写不会弹窗。</small>
-<h2>3. 选择微信群</h2><p class="hint">请先在本机微信登录，再读取群列表。可以在微信切换聊天，监听按群编号识别。</p>
+<button>保存个人信息</button><small>保存并同意授权后进入下一步。</small></form></section>
+<section data-step="1" hidden><h2>登录本人的接龙管家</h2><p class="hint" id="loginState">尚未保存官网登录。</p><p>点击下方按钮，在官网窗口登录。登录成功后回到这里，点「完成登录」。</p>
+<button id="login">打开官网登录</button><button id="finish" class="secondary">完成登录</button>
+<div class="actions"><button class="secondary" data-back="0">上一步</button><button id="login-next">下一步：选择群</button></div><small>只有你主动登录时会打开窗口，自动填表不会弹窗。</small></section>
+<section data-step="2" hidden><h2>选择要监听的微信群</h2><p>先在这台电脑登录微信，再点击「读取微信账号和群列表」。只处理你选中的群。</p>
 <button id="discover" class="secondary">读取微信账号和群列表</button><p id="account" class="hint"></p>
-<label>目标群<select id="groups"><option value="">请先读取群列表</option></select></label><button id="select" class="secondary">保存目标群</button>
-<div><button id="start">启动后台监听</button><button id="stop" class="secondary">停止监听</button></div>
-<small>启动后仅处理所选群的新卡片，首次连接忽略历史消息。下次启动此应用会恢复监听；“停止监听”会取消恢复。</small>
-<div class="status"><div id="state">监听已停止</div><p id="status" role="status" aria-live="polite"></p></div>
-<h2>最近报名结果</h2><ul id="results"><li>暂无记录</li></ul>
+<label>目标群<select id="groups"><option value="">请先读取群列表</option></select></label>
+<div class="actions"><button class="secondary" data-back="1">上一步</button><button id="select">保存目标群</button></div></section>
+<section data-step="3" hidden><h2>准备开始</h2><p id="summary"></p><p>点击「启动后台监听」，显示「正在监听」后，再点「完成设置」。首次连接会忽略历史卡片。</p><button class="secondary" data-back="2">上一步</button><button id="complete">完成设置</button></section>
+<section id="dashboard" hidden><h2>后台自动填写</h2><p id="currentGroup"></p><aside>可以关闭此页面、切换微信聊天。电脑需保持开机并联网，微信和接龙管家登录需有效。</aside><button id="edit" class="secondary">修改设置</button></section>
+<section id="monitor" hidden><div class="actions"><button id="start">启动后台监听</button><button id="stop" class="secondary">停止监听</button></div><small>停止监听会取消下次启动时恢复监听；修改资料或目标群后也需要重新启动。</small>
+<label><input type="checkbox" id="startup">登录 Windows 后自动在后台启动</label><small id="startupHint">默认关闭，可以随时修改。启动时不打开设置页或官网窗口。</small><button id="save-startup" class="secondary">保存自启设置</button></section>
+<section id="records" hidden><h2>最近报名结果</h2><ul id="results"><li>暂无记录</li></ul></section>
 <details><summary>手动验证一个活动</summary><p class="hint">先停止自动监听，再粘贴活动链接测试。</p><label>接龙管家官方活动链接<input type="text" id="url" placeholder="https://i.jielong.com/f/…"></label><label><input type="checkbox" id="confirm">已核对活动和个人资料，确认提交一次</label><button id="submit">后台填写并提交</button></details>
-<footer><small>关闭页面后后台继续运行。</small><button id="quit" class="secondary">退出后台</button></footer></main>
+<footer><small>接龙助手 1.1.0 · 关闭页面后后台继续运行</small><button id="quit" class="secondary">退出后台</button></footer></main>
 <script nonce="__TOKEN__">
-const keys=['姓名','单位','职工号','所属部门'],$=id=>document.getElementById(id);let busy=false,ended=false,lastGroups='';
+const keys=['姓名','单位','职工号','所属部门'],$=id=>document.getElementById(id);let busy=false,ended=false,lastGroups='',lastState=null,step=0,editing=false,startupDirty=false;
 keys.forEach(k=>{const label=document.createElement('label');label.textContent=k;const input=document.createElement('input');input.type='text';input.required=true;input.maxLength=120;input.id=k;label.append(input);$('fields').append(label)});
 async function api(route,body={}){const r=await fetch('/api/'+route,{method:'POST',headers:{'Content-Type':'application/json','X-App-Token':'__TOKEN__'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw Error(d.error);return d}
+function firstStep(s){return keys.some(k=>!s.profile[k])||!s.authorized?0:!s.loginSaved?1:!s.selectedChatId?2:3}
 function render(s,initial=false){
- if(initial){keys.forEach(k=>$(k).value=s.profile[k]||'');$('authorize').checked=s.authorized}
+ lastState=s;if(initial){keys.forEach(k=>$(k).value=s.profile[k]||'');$('authorize').checked=s.authorized;step=firstStep(s)}
+ const done=s.onboardingComplete&&!editing;
+ $('steps').hidden=done;$('dashboard').hidden=!done;document.querySelectorAll('[data-step]').forEach(el=>el.hidden=done||Number(el.dataset.step)!==step);document.querySelectorAll('#steps span').forEach((el,i)=>i===step?el.setAttribute('aria-current','step'):el.removeAttribute('aria-current'));
+ $('intro').textContent=done?'资料已保存，所选群的新接龙将在后台处理。':'首次设置完成后，新接龙会自动填写，无需一直打开此页面。';
+ $('monitor').hidden=!done&&step!==3;$('records').hidden=!done&&step!==3;
  $('loginState').textContent=s.loginSaved?'已保存本人官网登录；失效时需重新登录。':'尚未保存官网登录。';
  $('account').textContent=s.accountId?'微信账号：'+s.accountName+'（'+s.accountId+'）':'尚未读取微信账号。';
  const signature=JSON.stringify([s.groups,s.selectedChatId]);if(signature!==lastGroups){lastGroups=signature;$('groups').replaceChildren();const blank=document.createElement('option');blank.value='';blank.textContent='请选择目标群';$('groups').append(blank);for(const g of s.groups){const o=document.createElement('option');o.value=g.id;o.textContent=g.name+'（'+g.id+'）';$('groups').append(o)}$('groups').value=s.selectedChatId;}
+ $('summary').textContent=keys.map(k=>k+'：'+(s.profile[k]||'未填写')).join('\n')+'\n目标群：'+(s.group||'未选择');$('currentGroup').textContent='当前监听群：'+s.group;
  $('state').textContent=s.watching.message+(s.wechatReady?' · '+s.group:'');
+ if(!startupDirty)$('startup').checked=!!s.startup?.enabled;
+ $('startup').disabled=busy||!s.startup?.supported;$('save-startup').disabled=busy||!s.startup?.supported;
+ $('startupHint').textContent=s.startup?.supported?'默认关闭，可以随时修改。启动时不打开设置页或官网窗口。':'开机自启仅在 Windows 安装版中可用。';
+ $('complete').disabled=busy||!s.wechatReady;$('login-next').disabled=busy||!s.loginSaved;
  $('results').replaceChildren();const names={submitted:'提交成功',failed:'停止处理',queued:'等待填写',running:'正在填写',interrupted:'上次任务中断'};
  for(const j of s.results){const li=document.createElement('li');let timing='';if(j.status==='submitted'){timing=Number.isFinite(j.endToEndMs)?'，消息到提交 '+(j.endToEndMs/1000).toFixed(2)+' 秒'+(j.endToEndMs>10000?'（超过 10 秒）':''):'，后台处理 '+(j.durationMs/1000).toFixed(2)+' 秒（未测消息时延）'}li.textContent=(names[j.status]||j.status)+' · '+j.id+timing+(j.error?'：'+j.error:'');$('results').append(li)}
  if(!s.results.length){const li=document.createElement('li');li.textContent='暂无记录';$('results').append(li)}
 }
 async function refresh(initial=false){render(await api('state'),initial)}
-async function run(fn){if(busy||ended)return;busy=true;const buttons=[...document.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);$('status').textContent='正在处理…';try{const d=await fn();$('status').textContent=d.message||'';if(!ended)await refresh()}catch(e){$('status').textContent=e.message}finally{busy=false;if(!ended)buttons.forEach(b=>b.disabled=false)}}
-$('profile').onsubmit=e=>{e.preventDefault();run(()=>api('profile',{profile:Object.fromEntries(keys.map(k=>[k,$(k).value])),authorized:$('authorize').checked}))};
-$('login').onclick=()=>run(()=>api('login'));$('finish').onclick=()=>run(()=>api('login-finish'));$('discover').onclick=()=>run(()=>api('wechat-discover'));$('select').onclick=()=>run(()=>api('wechat-select',{chatId:$('groups').value}));$('start').onclick=()=>run(()=>api('wechat-start'));$('stop').onclick=()=>run(()=>api('wechat-stop'));$('submit').onclick=()=>run(()=>api('submit',{url:$('url').value,confirm:$('confirm').checked}));$('quit').onclick=()=>run(async()=>{const d=await api('quit');ended=true;$('state').textContent='后台正在退出';return d});
+async function run(fn){if(busy||ended)return;busy=true;const buttons=[...document.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);$('status').textContent='正在处理…';try{const d=await fn();$('status').textContent=d.message||'';if(!ended)await refresh()}catch(e){$('status').textContent=e.message}finally{busy=false;if(!ended){buttons.forEach(b=>b.disabled=false);if(lastState)render(lastState)}}}
+$('profile').onsubmit=e=>{e.preventDefault();run(async()=>{const d=await api('profile',{profile:Object.fromEntries(keys.map(k=>[k,$(k).value])),authorized:$('authorize').checked});if($('authorize').checked)step=1;else d.message+='；请同意资料授权后继续';return d})};
+document.querySelectorAll('[data-back]').forEach(el=>el.onclick=()=>{step=Number(el.dataset.back);render(lastState)});
+$('edit').onclick=()=>{editing=true;step=0;keys.forEach(k=>$(k).value=lastState.profile[k]||'');render(lastState)};
+$('login').onclick=()=>run(()=>api('login'));$('finish').onclick=()=>run(async()=>{const d=await api('login-finish');step=2;return d});$('login-next').onclick=()=>{step=2;render(lastState)};
+$('discover').onclick=()=>run(()=>api('wechat-discover'));$('select').onclick=()=>run(async()=>{const d=await api('wechat-select',{chatId:$('groups').value});step=3;return d});
+$('startup').onchange=()=>startupDirty=true;$('save-startup').onclick=()=>run(async()=>{const d=await api('startup',{enabled:$('startup').checked});startupDirty=false;return d});
+$('complete').onclick=()=>run(async()=>{if(startupDirty){await api('startup',{enabled:$('startup').checked});startupDirty=false}const d=await api('onboarding-finish');editing=false;return d});
+$('start').onclick=()=>run(()=>api('wechat-start'));$('stop').onclick=()=>run(()=>api('wechat-stop'));$('submit').onclick=()=>run(()=>api('submit',{url:$('url').value,confirm:$('confirm').checked}));$('quit').onclick=()=>run(async()=>{const d=await api('quit');ended=true;$('state').textContent='后台正在退出';return d});
 refresh(true).catch(e=>$('status').textContent=e.message);setInterval(()=>{if(!busy&&!ended)refresh().catch(()=>{$('state').textContent='后台未连接；请重新启动应用'})},2000);
 </script></html>

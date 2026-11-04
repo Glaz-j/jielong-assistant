@@ -9,9 +9,10 @@ try{
  const page=await browser.newPage({viewport:{width:1000,height:1100}});await page.goto(app.url);await page.getByLabel('姓名',{exact:true}).waitFor();
  assert.equal(await page.getByLabel('姓名',{exact:true}).inputValue(),'');assert.equal(await page.getByRole('checkbox').first().isChecked(),false);
  assert.equal(await page.locator('#groups option').count(),1);assert.equal(await page.getByText('读取微信账号和群列表',{exact:true}).count(),1);
- await page.screenshot({path:path.resolve('release/onboarding-1.0.0.png'),fullPage:true});
+ assert.equal(await page.locator('#steps [aria-current=step]').innerText(),'1 · 个人资料');
+ await page.screenshot({path:path.resolve('release/onboarding-1.1.0.png'),fullPage:true});
  await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
- await page.getByRole('button',{name:'启动后台监听'}).click();await page.getByRole('status').filter({hasText:'四项个人信息'}).waitFor();
+ assert.equal(await page.getByRole('button',{name:'启动后台监听'}).isVisible(),false);
  await page.getByRole('button',{name:'退出后台'}).click();await page.getByRole('status').filter({hasText:'正在停止监听'}).waitFor();
  console.log(JSON.stringify({manifestFiles:Object.keys(meta).length,credentials:'empty-first-launch',desktopUI:'passed',narrowUI:'passed',platform:process.platform,windowsRuntime:'NOT TESTED'}));
 }finally{await browser.close();await app.close();await fs.rm(data,{recursive:true,force:true});}
